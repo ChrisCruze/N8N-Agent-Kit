@@ -1,0 +1,27 @@
+version: "3.8"
+services:
+  n8n:
+    image: n8nio/n8n:1.42.0
+    restart: unless-stopped
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD:-changeme}
+      - WEBHOOK_URL=${WEBHOOK_URL:-https://api.example.com/}
+      - GENERIC_TIMEZONE=${GENERIC_TIMEZONE:-UTC}
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+  rest-proxy:
+    image: ghcr.io/openapitools/openapi-docker:latest
+    restart: unless-stopped
+    environment:
+      - TARGET_URL=http://n8n:5678
+      - PORT=8080
+    depends_on:
+      - n8n
+    ports:
+      - "8080:8080"
+volumes:
+  n8n_data:

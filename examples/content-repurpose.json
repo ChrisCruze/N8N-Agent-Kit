@@ -1,0 +1,111 @@
+{
+  "name": "Content Repurpose Flow",
+  "tag": "Content",
+  "nodes": [
+    {
+      "id": "1",
+      "name": "Cron Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "parameters": {
+        "triggerTimes": [
+          {
+            "hour": 8,
+            "minute": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "2",
+      "name": "Fetch Airtable Briefs",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 3,
+      "position": [300, 0],
+      "parameters": {
+        "operation": "list",
+        "application": "airtable-agentkit",
+        "tableId": "tblBriefs",
+        "additionalOptions": {
+          "maxRecords": 10
+        }
+      }
+    },
+    {
+      "id": "3",
+      "name": "Generate Variations",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [600, 0],
+      "parameters": {
+        "url": "https://llm-gateway.internal/generate",
+        "method": "POST",
+        "jsonParameters": true,
+        "options": {
+          "timeout": 60
+        },
+        "body": {
+          "prompt": "{{ $json.title }}\n{{ $json.summary }}",
+          "tone": "educational",
+          "channels": ["blog", "social"]
+        }
+      }
+    },
+    {
+      "id": "4",
+      "name": "Airtable - Upsert Approved Copy",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 3,
+      "position": [900, 0],
+      "parameters": {
+        "operation": "update",
+        "application": "airtable-agentkit",
+        "tableId": "tblBriefs",
+        "additionalOptions": {
+          "typecast": true
+        },
+        "updateAllFields": true
+      }
+    }
+  ],
+  "connections": {
+    "Cron Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Airtable Briefs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Airtable Briefs": {
+      "main": [
+        [
+          {
+            "node": "Generate Variations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Variations": {
+      "main": [
+        [
+          {
+            "node": "Airtable - Upsert Approved Copy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionTimeout": 600,
+    "timezone": "UTC"
+  }
+}
