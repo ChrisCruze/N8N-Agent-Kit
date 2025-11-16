@@ -1,0 +1,109 @@
+{
+  "name": "Lifecycle Email Orchestrator",
+  "tag": "Email",
+  "nodes": [
+    {
+      "id": "10",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "parameters": {
+        "path": "email/lifecycle",
+        "httpMethod": "POST",
+        "responseMode": "lastNode",
+        "options": {
+          "responseCode": 202
+        }
+      }
+    },
+    {
+      "id": "11",
+      "name": "Feature Flag Lookup",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 3,
+      "position": [300, 0],
+      "parameters": {
+        "operation": "list",
+        "application": "airtable-agentkit",
+        "tableId": "tblFlags",
+        "additionalOptions": {
+          "maxRecords": 1,
+          "filterByFormula": "{Flag}='{{ $json.flag }}'"
+        }
+      }
+    },
+    {
+      "id": "12",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [600, 0],
+      "parameters": {
+        "fromEmail": "ops@example.com",
+        "toEmail": "={{$json.email}}",
+        "subject": "={{$json.subject}}",
+        "text": "={{$json.body}}",
+        "options": {
+          "allowUnauthorizedCerts": false
+        }
+      }
+    },
+    {
+      "id": "13",
+      "name": "Log Delivery",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [900, 0],
+      "parameters": {
+        "url": "https://observability.internal/email",
+        "method": "POST",
+        "jsonParameters": true,
+        "body": {
+          "workflow": "Lifecycle Email Orchestrator",
+          "recipient": "={{$json.email}}",
+          "status": "queued"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Feature Flag Lookup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Feature Flag Lookup": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email": {
+      "main": [
+        [
+          {
+            "node": "Log Delivery",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionTimeout": 300,
+    "saveDataErrorExecution": true
+  }
+}

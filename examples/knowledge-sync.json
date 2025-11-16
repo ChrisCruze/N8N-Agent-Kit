@@ -1,0 +1,101 @@
+{
+  "name": "Knowledge Base Sync",
+  "tag": "Knowledge",
+  "nodes": [
+    {
+      "id": "20",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "parameters": {
+        "triggerTimes": [
+          {
+            "weekday": 1,
+            "hour": 2,
+            "minute": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "21",
+      "name": "Dropbox - List Folder",
+      "type": "n8n-nodes-base.dropbox",
+      "typeVersion": 2,
+      "position": [300, 0],
+      "parameters": {
+        "operation": "list",
+        "path": "/KnowledgeBase/Source",
+        "options": {
+          "recursive": true
+        }
+      }
+    },
+    {
+      "id": "22",
+      "name": "Compute Dropbox Checksum",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [600, 0],
+      "parameters": {
+        "functionCode": "return items.map(item => {\n  const data = item.json.content || '';\n  item.json.checksum = require('crypto').createHash('sha256').update(data).digest('hex');\n  return item;\n});"
+      }
+    },
+    {
+      "id": "23",
+      "name": "Airtable - Dataset Index",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 3,
+      "position": [900, 0],
+      "parameters": {
+        "operation": "upsert",
+        "application": "airtable-agentkit",
+        "tableId": "tblKnowledge",
+        "additionalOptions": {
+          "matchingColumns": ["FilePath"],
+          "typecast": true
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Dropbox - List Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dropbox - List Folder": {
+      "main": [
+        [
+          {
+            "node": "Compute Dropbox Checksum",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Dropbox Checksum": {
+      "main": [
+        [
+          {
+            "node": "Airtable - Dataset Index",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionTimeout": 900,
+    "retryOnFail": true
+  }
+}
