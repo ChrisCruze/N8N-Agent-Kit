@@ -1,0 +1,79 @@
+{
+  "name": "Hello World Ping Flow",
+  "tag": "Tasks",
+  "nodes": [
+    {
+      "id": "1",
+      "name": "Cron Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "parameters": {
+        "triggerTimes": [
+          {
+            "hour": 9,
+            "minute": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "2",
+      "name": "Set Hello Payload",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [300, 0],
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "message",
+              "value": "Hello from the n8n Agent Kit!"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "3",
+      "name": "Send Slack Ping",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [600, 0],
+      "parameters": {
+        "operation": "postMessage",
+        "text": "{{$json.message}}",
+        "channel": "agent-notifications"
+      }
+    }
+  ],
+  "connections": {
+    "Cron Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Hello Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Hello Payload": {
+      "main": [
+        [
+          {
+            "node": "Send Slack Ping",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionTimeout": 300,
+    "timezone": "UTC"
+  }
+}
